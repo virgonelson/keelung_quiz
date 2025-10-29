@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基隆氣象知識小挑戰</title>
+    <style>
+        /* 基礎樣式 */
+        body {
+            font-family: '微軟正黑體', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        /* 題目區塊樣式 */
+        .question-card {
+            background: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .question-title {
+            font-size: 1.25em;
+            font-weight: bold; /* 題目本身已是粗體 */
+            color: #343a40;
+            margin-bottom: 15px;
+            border-left: 5px solid #007bff;
+            padding-left: 10px;
+        }
+        
+        /* 讓題目中的指定關鍵字更明顯 (使用主題藍色和超粗體) */
+        .question-title strong {
+            color: #007bff; 
+            font-weight: 900; 
+        }
+
+        /* 選項網格容器 - 實現 2x2 佈局 */
+        .options-grid {
+            display: flex;
+            flex-wrap: wrap; 
+            gap: 10px; /* 選項之間的間距 */
+        }
+        
+        /* 選項樣式 */
+        .option {
+            /* 讓每個選項佔據約 50% 寬度，並扣除間距 */
+            flex: 1 1 calc(50% - 5px); 
+            
+            display: block;
+            margin-bottom: 0px; /* 移除選項間的垂直間距，改用 grid gap */
+            padding: 10px 15px;
+            background: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-weight: normal; /* 確保選項文字不會是粗體 */
+        }
+
+        .option:hover:not(.disabled) {
+            background-color: #f0f8ff;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 10px;
+        }
+        
+        /* 答案反饋樣式 */
+        .feedback {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .correct {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 按鈕樣式 */
+        .submit-all {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+
+        .submit-all:hover {
+            background-color: #218838;
+        }
+        
+        /* 第二頁/結果區塊樣式 */
+        #results {
+            text-align: center;
+            margin-top: 30px;
+            padding: 50px 25px;
+            border-radius: 15px;
+        }
+
+        .pass {
+            background: #e6ffed;
+            border: 5px solid #28a745;
+        }
+        
+        .fail {
+            background: #ffe6e6;
+            border: 5px solid #dc3545;
+        }
+        
+        #results h2 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+        
+        #results .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        /* 重來一次按鈕樣式 */
+        .restart-button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .restart-button:hover {
+            background-color: #0056b3;
+        }
+
+        .disabled {
+            pointer-events: none; /* 禁用點擊 */
+            opacity: 0.8;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🏆 基隆氣象知識小挑戰</h1>
+
+        <div id="quiz-page">
+            <p>請完成以下所有問題，並在最後點擊「送出答案」來查看您的得分與挑戰結果。</p>
+            <form id="quizForm"></form>
+            <button type="button" class="submit-all" onclick="submitQuiz()">送出答案與查看結果</button>
+        </div>
+
+        <div id="results" style="display: none;">
+            </div>
+    </div>
+
+    <script>
+        // 測驗題目資料 (總計 20 題)
+        const quizData = [
+            // --- 基礎知識與觀測站地點 (Q1-Q7) ---
+            {
+                // Q1
+                question: "基隆氣象站目前<strong>隸屬於</strong>政府的哪一個機關？",
+                options: ["內政部國土測繪中心", "交通部中央氣象署", "基隆市政府工務處", "農業部農業試驗所"],
+                correctAnswer: "交通部中央氣象署"
+            },
+            {
+                // Q2
+                question: "基隆氣象站的地理位置在臺灣本島陸地上有何<strong>特殊稱號</strong>？",
+                options: ["臺灣本島陸地最東邊的地面綜觀氣象站", "臺灣本島陸地海拔最高的地面綜觀氣象站", "臺灣本島陸地最北邊的地面綜觀氣象站", "臺灣本島最早設立的地面綜觀氣象站"],
+                correctAnswer: "臺灣本島陸地最北邊的地面綜觀氣象站"
+            },
+            {
+                // Q3
+                question: "現今基隆氣象站主要設於基隆市哪一棟<strong>重要建築物</strong>的六樓與七樓？",
+                options: ["基隆車站大樓", "基隆港海港大樓", "國立臺灣海洋大學", "基隆市政府"],
+                correctAnswer: "基隆港海港大樓"
+            },
+            {
+                // Q4 (New Q4 - TWVD2001)
+                question: "我國的<strong>臺灣高程基準原點 (TWVD2001)</strong>，又稱為<strong>海拔</strong>，是由哪地的長期潮位平均定義？",
+                options: ["淡水", "基隆", "高雄", "澎湖"],
+                correctAnswer: "基隆"
+            },
+            {
+                // Q5
+                question: "基隆氣象站除了氣象觀測外，還設有哪一種儀器來 24 小時<strong>監控地震</strong>發生狀況？",
+                options: ["都卜勒雷達", "SMART24A地震儀", "潮位站", "微波輻射儀"],
+                correctAnswer: "SMART24A地震儀"
+            },
+            {
+                // Q6
+                question: "氣象站設立的<strong>環境理想條件</strong>為何？",
+                options: ["位於城市中心且四周高樓林立", "靠近海邊方便觀測海風", "選定空曠平坦的草地，遠離建築物和反射面", "設置在有遮蔽物的高山上，以測量極端天氣"],
+                correctAnswer: "選定空曠平坦的草地，遠離建築物和反射面"
+            },
+
+            // --- 觀測原理與儀器 (Q7-Q11) ---
+            {
+                // Q7
+                question: "在傳統氣象觀測中，哪一種儀器是<strong>利用玻璃球聚焦陽光</strong>，在紙帶上燒焦痕跡來記錄日照時數？",
+                options: ["自動雨量計", "感應式風向風速儀", "水銀氣壓計", "坎培爾-斯托克斯日照計"],
+                correctAnswer: "坎培爾-斯托克斯日照計"
+            },
+            {
+                // Q8
+                question: "自動<strong>傾斗式</strong>雨量儀的觀測原理是什麼？",
+                options: ["雨水累積到一定重量後，透過壓力傳感器發送訊號", "利用聲音感應技術，偵測雨滴撞擊金屬盤的頻率", "雨水累積達特定刻度 (如 0.5 毫米) 時，內部的量杯會傾倒並觸發電子訊號", "使用雷射光束照射雨滴，測量光線折射率來判斷雨量"],
+                correctAnswer: "雨水累積達特定刻度 (如 0.5 毫米) 時，內部的量杯會傾倒並觸發電子訊號"
+            },
+            {
+                // Q9
+                question: "氣象站觀測氣溫時，溫度計必須放置在<strong>白色百葉箱</strong>內的主要目的是什麼？",
+                options: ["避免儀器被偷竊或被雨淋濕", "確保觀測值不受太陽直接輻射影響，同時維持空氣流通", "加速溫度計對氣溫變化的反應速度", "讓觀測員能更清楚地讀取溫度值"],
+                correctAnswer: "確保觀測值不受太陽直接輻射影響，同時維持空氣流通"
+            },
+            {
+                // Q10
+                question: "氣象觀測中的『<strong>能見度</strong>』主要是指什麼？",
+                options: ["天空雲層的厚度", "觀測者能清楚看到特定目標物的最大水平距離", "雲層反射陽光的強度", "降水粒子下落的速度"],
+                correctAnswer: "觀測者能清楚看到特定目標物的最大水平距離"
+            },
+
+            // --- 基隆氣候與特性 (Q11-Q17) ---
+            {
+                // Q11 (原 Q12)
+                question: "基隆因其全年多雨濕潤的氣候特色，最廣為人知的<strong>別稱</strong>是什麼？",
+                options: ["山城", "風都", "雨港", "霧都"],
+                correctAnswer: "雨港"
+            },
+            {
+                // Q12 (原 Q13)
+                question: "從氣候分類而言，基隆的<strong>氣候型態</strong>主要屬於哪一種？",
+                options: ["熱帶季風氣候", "溫帶大陸性氣候", "亞熱帶季風氣候", "高地氣候"],
+                correctAnswer: "亞熱帶季風氣候"
+            },
+            {
+                // Q13 (原 Q14)
+                question: "基隆在冬季前後會因為處於哪一種<strong>季風</strong>的迎風面，而導致潮濕多雨的氣候特性？",
+                options: ["西南季風", "太平洋高壓氣流", "東北季風", "南風"],
+                correctAnswer: "東北季風"
+            },
+            {
+                // Q14 (原 Q15)
+                question: "根據歷史觀測資料，基隆地區的<strong>降雨特性</strong>是哪一種？",
+                options: ["夏雨多於冬雨", "冬季的降雨量多於夏季", "全年降雨量全國最少", "春季降雨集中，秋季幾乎無雨"],
+                correctAnswer: "冬季的降雨量多於夏季"
+            },
+            {
+                // Q15 (原 Q16)
+                question: "根據基隆氣象觀測資料，在哪一個全國排名上<strong>名列 第 1</strong>？",
+                options: ["年平均降雨量", "年平均高溫日數", "酸雨（pH值5以下）", "平均風速"],
+                correctAnswer: "酸雨（pH值5以下）"
+            },
+            {
+                // Q16 (原 Q17)
+                question: "基隆秋天的時候常聽到所謂的<strong>共伴效應</strong>，請問是哪兩個現象加乘在一起所造成？",
+                options: ["梅雨鋒面與西南季風", "颱風外圍環流與東北季風", "太平洋高壓與颱風路徑", "大陸冷氣團與西南季風"],
+                correctAnswer: "颱風外圍環流與東北季風"
+            },
+            {
+                // Q17 (原 Q18)
+                question: "基隆港區及市中心在每年冬季和春季交際時，時常發生哪種氣候現象，甚至被賦予『<strong>霧鎖雨港</strong>』的美稱？",
+                options: ["強烈寒流", "颱風", "大霧", "雷暴"],
+                correctAnswer: "大霧"
+            },
+
+            // --- 環境與全球議題 (Q18-Q20) ---
+            {
+                // Q18 (原 Q19)
+                question: "關於全球『<strong>氣候變遷</strong>』，科學界普遍認為其主要的<strong>驅動因素</strong>是什麼？",
+                options: ["地球公轉軌道的自然週期變化", "太陽黑子活動週期增加", "人類活動排放的溫室氣體增加", "火山噴發釋放的大量懸浮微粒"],
+                correctAnswer: "人類活動排放的溫室氣體增加"
+            },
+            {
+                // Q19 (原 Q20)
+                question: "『<strong>溫室效應</strong>』是一種自然現象，它對地球的作用是什麼？",
+                options: ["使地球表面的溫度降低到生物無法生存", "能保留地表散發的部分熱能，使地球溫度保持在適合生物生存的範圍", "將所有太陽光反射回太空，避免地球過熱", "只在夜間發生，白天沒有任何影響"],
+                correctAnswer: "能保留地表散發的部分熱能，使地球溫度保持在適合生物生存的範圍"
+            },
+            {
+                // Q20 (原 Q21)
+                question: "根據中央氣象署的長期氣候資料，基隆的<strong>年平均雨量</strong>大約為多少毫米？",
+                options: ["約 500 毫米", "約 2000 毫米", "約 3500 毫米", "約 5000 毫米"],
+                correctAnswer: "約 3500 毫米"
+            }
+        ];
+
+
+        // ----------------------------------------------------------------------
+        // JavaScript 核心功能
+        // ----------------------------------------------------------------------
+        
+        const PASS_SCORE = 70; // 過關分數門檻 (70分)
+        const SCORE_PER_QUESTION = 5; // 每題分數
+
+        // 1. 動態生成題目
+        const quizForm = document.getElementById('quizForm');
+        function buildQuiz() {
+            quizData.forEach((item, index) => {
+                const qNum = index + 1;
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.setAttribute('data-q-index', index);
+                
+                const title = document.createElement('div');
+                title.className = 'question-title';
+                title.innerHTML = `${qNum}. ${item.question}`; // 使用 innerHTML 解析粗體標籤
+                card.appendChild(title);
+
+                const optionsContainer = document.createElement('div');
+                optionsContainer.className = 'options-grid'; // 使用新的 grid 容器
+                
+                item.options.forEach(optionText => {
+                    const optionDiv = document.createElement('label');
+                    optionDiv.className = 'option';
+                    // 選項文字不會有粗體標籤
+                    optionDiv.innerHTML = `
+                        <input type="radio" name="question${index}" value="${optionText}">
+                        ${optionText}
+                    `;
+                    optionDiv.addEventListener('click', function(event) {
+                        if (!card.querySelector('.feedback')) {
+                            setTimeout(() => checkAnswer(card, index), 0);
+                        }
+                    });
+
+                    optionsContainer.appendChild(optionDiv);
+                });
+                card.appendChild(optionsContainer);
+                
+                quizForm.appendChild(card);
+            });
+        }
+
+        // 2. 單題答案檢查與反饋 (點擊選項後立即顯示結果)
+        function checkAnswer(questionCard, index) {
+            const questionData = quizData[index];
+            const name = `question${index}`;
+            const selectedOption = questionCard.querySelector(`input[name="${name}"]:checked`);
+            
+            if (!selectedOption) return;
+
+            const userAnswer = selectedOption.value;
+            const correctAnswer = questionData.correctAnswer;
+            const options = questionCard.querySelectorAll('.option');
+
+            let existingFeedback = questionCard.querySelector('.feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+            options.forEach(opt => opt.classList.remove('disabled'));
+
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback';
+            
+            if (userAnswer === correctAnswer) {
+                feedback.classList.add('correct');
+                feedback.textContent = `✅ 恭喜您，答對了！`;
+            } else {
+                feedback.classList.add('incorrect');
+                // 答錯時顯示正確答案的內容
+                feedback.innerHTML = `❌ 很可惜，答錯了！<br>正確答案是：${correctAnswer}`;
+            }
+
+            questionCard.appendChild(feedback);
+
+            options.forEach(opt => {
+                opt.classList.add('disabled');
+                // 視覺化正確和錯誤答案
+                if (opt.textContent.trim() === correctAnswer) {
+                    opt.style.backgroundColor = '#d4edda';
+                    opt.style.border = '1px solid #155724';
+                } else if (opt.querySelector('input').checked) {
+                    opt.style.backgroundColor = '#f8d7da';
+                    opt.style.border = '1px solid #721c24';
+                }
+            });
+        }
+
+        // 3. 測驗總結並跳轉到結果頁面
+        function submitQuiz() {
+            let correctCount = 0;
+            const totalQuestions = quizData.length;
+            
+            // 確保所有題目都有反饋和計分
+            quizData.forEach((question, index) => {
+                const qCard = document.querySelector(`.question-card[data-q-index="${index}"]`);
+                const name = `question${index}`;
+                const selectedOption = qCard.querySelector(`input[name="${name}"]:checked`);
+                
+                // 如果題目尚未檢查，執行檢查（確保未作答也會有結果）
+                if (!qCard.querySelector('.feedback')) {
+                    const feedback = document.createElement('div');
+                    feedback.className = 'feedback incorrect';
+                    feedback.innerHTML = `⚠️ 尚未作答！<br>正確答案是：${question.correctAnswer}`;
+                    qCard.appendChild(feedback);
+                    qCard.querySelectorAll('.option').forEach(opt => opt.classList.add('disabled'));
+                }
+                
+                // 重新計分
+                if (selectedOption && selectedOption.value === question.correctAnswer) {
+                    correctCount++;
+                }
+            });
+
+            const finalScore = correctCount * SCORE_PER_QUESTION;
+            const isPassed = finalScore >= PASS_SCORE;
+            
+            // 隱藏測驗頁面
+            document.getElementById('quiz-page').style.display = 'none';
+
+            // 顯示結果頁面 (模擬第二頁跳轉)
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.className = isPassed ? 'pass' : 'fail';
+            
+            const resultTitle = isPassed ? '🎉 恭喜過關！' : '😭 挑戰失敗！';
+            const message = isPassed 
+                ? '您已達到 70 分的門檻，對基隆氣象知識掌握得非常好！' 
+                : '很可惜，您未能達到 70 分門檻。請再接再厲，複習後再試一次！';
+
+            resultsDiv.innerHTML = `
+                <h2>${resultTitle}</h2>
+                <p>總題數：${totalQuestions} 題（每題 ${SCORE_PER_QUESTION} 分）</p>
+                <div class="score-display" style="color: ${isPassed ? '#28a745' : '#dc3545'};">
+                    ${finalScore} / 100 分
+                </div>
+                <p style="font-size: 1.2em;">${message}</p>
+                <p>您的正確題數：${correctCount} 題</p>
+                <button class="restart-button" onclick="location.reload()">重來一次</button>
+            `;
+            
+            // 滾動到結果
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // 頁面載入時執行
+        window.onload = buildQuiz;
+
+    </script>
+
+</body>
+</html>
